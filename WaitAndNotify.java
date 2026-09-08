@@ -3,37 +3,46 @@ public class SequenceOutput {
     private static boolean isFirstThreadTurn = true;
 
     public static void main(String[] args) {
-        Thread thread1 = new Thread(() -> {
-            while (true) {
-                synchronized (lock) {
-                    while (!isFirstThreadTurn) {
-                        try { lock.wait(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-                    }
-                    
-                    System.out.print("1");
-                    
-                    isFirstThreadTurn = false;
-                    lock.notify();
-                }
-            }
-        });
-
-        Thread thread2 = new Thread(() -> {
-            while (true) {
-                synchronized (lock) {
-                    while (isFirstThreadTurn) {
-                        try { lock.wait(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-                    }
-                    
-                    System.out.print("2");
-                    
-                    isFirstThreadTurn = true;
-                    lock.notify();
-                }
-            }
-        });
+        Thread thread1 = new Thread(new PrinterTask("1", true));
+        Thread thread2 = new Thread(new PrinterTask("2", false));
 
         thread1.start();
         thread2.start();
+
+        try {
+            thread1.join();
+            thread2.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private static class PrinterTask implements Runnable {
+        private final String textToPrint;
+        private final boolean runOnTrue;
+
+        public PrinterTask(String textToPrint, boolean runOnTrue) {
+            this.textToPrint = textToPrint;
+            this.runOnTrue = runOnTrue;
+        }
+
+        @Override
+        public void run() {
+            while (!Thread.currentThread().isInterrupted()) {
+                synchronized (lock) {
+                    while (isFirstThreadTurn != runOnTrue) {
+                        try {
+                            lock.wait();
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            return;
+                        }
+                    }
+
+                    isFirstThreadTurn = !runOnTrue;
+                    lock.notifyAll();
+                }
+            }
+        }
     }
 }
