@@ -13,6 +13,7 @@ public class SequenceOutput {
             thread1.join();
             thread2.join();
         } catch (InterruptedException e) {
+            System.err.println("The main flow was interrupted!");
             Thread.currentThread().interrupt();
         }
     }
@@ -38,6 +39,8 @@ public class SequenceOutput {
                             return;
                         }
                     }
+
+                    System.out.println(textToPrint);
 
                     isFirstThreadTurn = !runOnTrue;
                     lock.notifyAll();
